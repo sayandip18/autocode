@@ -1,8 +1,10 @@
 from fastapi import FastAPI
+from dotenv import load_dotenv
 
-app = FastAPI()
+load_dotenv()
 
+from app.api.query import router as query_router
 
-@app.get("/")
-async def root():
-    return {"message": "Hello FastAPI"}
+app = FastAPI(title="Autocode")
+
+app.include_router(query_router)
