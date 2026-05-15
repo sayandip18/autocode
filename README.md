@@ -19,3 +19,7 @@ Response with sources
 Command to run (w/o Docker)
 
 .\venv\Scripts\uvicorn app.main:app --reload
+
+For observability
+
+Langfuse
