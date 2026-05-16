@@ -1,15 +1,5 @@
-import httpx
-import os
+from langchain_tavily import TavilySearch
 
-async def web_search(query: str) -> list[dict]:
-    async with httpx.AsyncClient() as client:
-        r = await client.post(
-            "https://api.tavily.com/search",
-            json={
-                "api_key": os.environ["TAVILY_KEY"],
-                "query": query,
-                "max_results": 5,
-                "include_raw_content": True
-            }
-        )
-        return r.json()["results"]  # [{url, title, content}, ...]
+
+def make_web_search_tool() -> TavilySearch:
+    return TavilySearch(max_results=5)

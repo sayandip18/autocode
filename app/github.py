@@ -5,6 +5,7 @@ import os
 import re
 
 import httpx
+from langchain_core.tools import tool
 
 
 _GITHUB_API = "https://api.github.com"
@@ -16,6 +17,12 @@ def _parse_repo_url(url: str) -> tuple[str, str]:
         raise ValueError(f"Cannot parse GitHub repo URL: {url}")
     owner, repo = match.group(1), match.group(2).removesuffix(".git")
     return owner, repo
+
+
+@tool
+async def github_fetch(repo_url: str) -> dict[str, str]:
+    """Fetch README and file tree from a GitHub repo URL."""
+    return await fetch_repo_info(repo_url)
 
 
 async def fetch_repo_info(repo_url: str) -> dict[str, str]:
