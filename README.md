@@ -1,6 +1,6 @@
 AUTOCODE
 
-An AI research assistant with GitHub and web retrieval capabilities.
+An AI research assistant with GitHub and web retrieval capabilities, and per-user episodic memory.
 
 ---
 
@@ -15,12 +15,16 @@ get_or_create_session → sessions table (Postgres)
         ↓
 run_agent(query, session_id)
         ↓
+InjectEpisodicMemory middleware          ← retrieves top-5 similar memories
+        ↓                                   (pgvector similarity search, scoped to user_id)
 LangChain ReAct agent  ←──── AsyncPostgresSaver (thread_id = session_id)
-    │                              restores prior messages from checkpoint DB
+    │                              restores prior messages from langgraph schema
     ├── github_fetch
     ├── web_search / web_extract
     └── arxiv_tool
         ↓
+ArchiveEpisodeHook middleware             ← judges turn with gpt-4o-mini
+        ↓                                   stores summary in pgvector if noteworthy
 save_turn → messages table (Postgres, audit log)
         ↓
 Response + session_id
@@ -43,7 +47,7 @@ LANGFUSE_PUBLIC_KEY=...
 LANGFUSE_BASE_URL=https://cloud.langfuse.com
 
 DATABASE_URL=postgresql+asyncpg://user:pass@localhost:5432/autocode
-CHECKPOINT_DB_URL=postgresql://user:pass@localhost:5433/checkpoints
+CHECKPOINT_DB_URL=postgresql://user:pass@localhost:5432/autocode
 ```
 
 ### 2. Start Postgres
@@ -52,9 +56,12 @@ CHECKPOINT_DB_URL=postgresql://user:pass@localhost:5433/checkpoints
 docker compose up -d
 ```
 
-Two Postgres instances are started:
-- Port `5432` — application DB (sessions, messages, users)
-- Port `5433` — LangGraph checkpoint DB (conversation state)
+A single Postgres instance (port `5432`, image `pgvector/pgvector:pg16`) hosts everything:
+
+| Schema | Purpose |
+|---|---|
+| `public` | Application tables: `users`, `sessions`, `messages` |
+| `langgraph` | LangGraph tables: checkpoints, store (episodic memories with pgvector index) |
 
 ### 3. Run
 
@@ -62,7 +69,7 @@ Two Postgres instances are started:
 .\venv\Scripts\uvicorn app.main:app --reload
 ```
 
-On first startup the app creates ORM tables (port 5432) and LangGraph checkpoint tables (port 5433) automatically.
+On first startup the app creates the `vector` extension, the `langgraph` schema, ORM tables, and LangGraph checkpoint/store tables automatically.
 
 ---
 
