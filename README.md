@@ -1,4 +1,4 @@
-AUTOCODE
+# AUTOCODE
 
 An AI research assistant with GitHub and web retrieval capabilities, and per-user episodic memory.
 
@@ -58,9 +58,9 @@ docker compose up -d
 
 A single Postgres instance (port `5432`, image `pgvector/pgvector:pg16`) hosts everything:
 
-| Schema | Purpose |
-|---|---|
-| `public` | Application tables: `users`, `sessions`, `messages` |
+| Schema      | Purpose                                                                      |
+| ----------- | ---------------------------------------------------------------------------- |
+| `public`    | Application tables: `users`, `sessions`, `messages`                          |
 | `langgraph` | LangGraph tables: checkpoints, store (episodic memories with pgvector index) |
 
 ### 3. Run
