@@ -1,25 +1,71 @@
 AUTOCODE
 
-An AI research assistant with github and web retrieval capabilities
+An AI research assistant with GitHub and web retrieval capabilities.
 
-Version v0 flow
+---
 
-User Query
-↓
-Intent Parser (is this a web task or GitHub task?)
-↓
-Retriever (fetch raw content)
-↓
-Context Builder (chunk + trim to fit context window)
-↓
-LLM (synthesize answer)
-↓
-Response with sources
+## Architecture
 
-Command to run (w/o Docker)
+```
+User Query (with session_id)
+        ↓
+FastAPI /query endpoint
+        ↓
+get_or_create_session → sessions table (Postgres)
+        ↓
+run_agent(query, session_id)
+        ↓
+LangChain ReAct agent  ←──── AsyncPostgresSaver (thread_id = session_id)
+    │                              restores prior messages from checkpoint DB
+    ├── github_fetch
+    ├── web_search / web_extract
+    └── arxiv_tool
+        ↓
+save_turn → messages table (Postgres, audit log)
+        ↓
+Response + session_id
+```
 
+---
+
+## Setup
+
+### 1. Environment
+
+Copy and fill in `.env`:
+
+```
+OPENAI_API_KEY=...
+GITHUB_PAT=...
+TAVILY_API_KEY=...
+LANGFUSE_SECRET_KEY=...
+LANGFUSE_PUBLIC_KEY=...
+LANGFUSE_BASE_URL=https://cloud.langfuse.com
+
+DATABASE_URL=postgresql+asyncpg://user:pass@localhost:5432/autocode
+CHECKPOINT_DB_URL=postgresql://user:pass@localhost:5433/checkpoints
+```
+
+### 2. Start Postgres
+
+```
+docker compose up -d
+```
+
+Two Postgres instances are started:
+- Port `5432` — application DB (sessions, messages, users)
+- Port `5433` — LangGraph checkpoint DB (conversation state)
+
+### 3. Run
+
+```
 .\venv\Scripts\uvicorn app.main:app --reload
+```
 
-For observability
+On first startup the app creates ORM tables (port 5432) and LangGraph checkpoint tables (port 5433) automatically.
 
-Langfuse
+---
+
+## Observability
+
+[Langfuse](https://cloud.langfuse.com) — configure `LANGFUSE_*` keys in `.env`.
