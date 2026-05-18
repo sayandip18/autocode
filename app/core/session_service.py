@@ -2,18 +2,12 @@ from __future__ import annotations
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 
 from app.api.model.message import Message
 from app.api.model.session import Session
 from app.api.model.user import User
 
 ANON_USER_EMAIL = "anon@system"
-
-_ROLE_TO_MSG: dict[str, type[BaseMessage]] = {
-    "human": HumanMessage,
-    "ai": AIMessage,
-}
 
 
 async def get_or_create_session(db: AsyncSession, session_id: int | None) -> Session:
@@ -30,19 +24,6 @@ async def get_or_create_session(db: AsyncSession, session_id: int | None) -> Ses
     db.add(session)
     await db.flush()
     return session
-
-
-async def load_history(db: AsyncSession, session_id: int) -> list[BaseMessage]:
-    result = await db.execute(
-        select(Message)
-        .where(Message.session_id == session_id)
-        .order_by(Message.created_at)
-    )
-    return [
-        _ROLE_TO_MSG[msg.role](content=msg.content)
-        for msg in result.scalars()
-        if msg.role in _ROLE_TO_MSG
-    ]
 
 
 async def save_turn(

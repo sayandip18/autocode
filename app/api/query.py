@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.session_service import get_or_create_session, load_history, save_turn
+from app.core.session_service import get_or_create_session, save_turn
 from app.core.tool import run_agent
 from app.db import get_db
 
@@ -24,8 +24,7 @@ class QueryRequest(BaseModel):
 async def query(body: QueryRequest, db: AsyncSession = Depends(get_db)):
     try:
         session = await get_or_create_session(db, body.session_id)
-        history = await load_history(db, session.id)
-        answer = await run_agent(body.q, history)
+        answer = await run_agent(body.q, session.id)
         await save_turn(db, session.id, body.q, answer)
     except Exception as exc:
         logger.exception("Agent failed")
